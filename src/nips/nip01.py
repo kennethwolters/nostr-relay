@@ -65,14 +65,6 @@ class Event:
         self.id = hex_hash
         return hex_hash
 
-    def _create_sig(self) -> None:
-        """
-        64-bytes lowercase hex of the signature of the sha256 hash of the
-        serialized event data, which is the same as the "id" field.
-        For signing, we use the private key of the event creator.
-        """
-        signed_event_id = self.id
-
     def _get_serialised_utf8encoded_string_from_event(self) -> str:
         """
         Returns the serialised string from the given event.
