@@ -4,7 +4,7 @@ This module tests nip01.py. It enforces the NIP-01 specification.
 
 import unittest
 
-from nips.nip01 import Event
+from nips.nip01 import Event, User
 
 
 class TestEvent(unittest.TestCase):
@@ -69,3 +69,41 @@ class TestEvent(unittest.TestCase):
             event.id,
             "f29994ceab5b631558e200a0b62ad485eaad8938ba1cdef5bbbff09a89b096e6",
         )
+
+
+class TestUser(unittest.TestCase):
+    """
+    Test User class
+    """
+
+    def setUp(self) -> None:
+        self.user = User()
+        self.private_key = self.user.private_key
+        self.persistent_private_key_str = (
+            "71552c92d6c1a3dd208d121ac6b44d51e0861751135a3ef70d5b15f5c1059ff1"
+        )
+
+    def test_sign_event(self) -> None:
+        """
+        Tests the User.sign_event(event = Event()) method.
+        """
+
+    def test_verify_event(self) -> None:
+        """
+        Tests the User.verify_event(event = Event()) method.
+        """
+
+    def test__get_public_key_from_private_key(self) -> None:
+        """
+        Running this test takes having a private key as a string.
+        """
+
+    def test_user_instantiation_with_existing_private_key(self) -> None:
+        """
+        Tests the User class instantiation with an existing private key.
+        """
+
+    def test_create_signed_event(self) -> None:
+        """
+        Tests the User.create_signed_event() method.
+        """
