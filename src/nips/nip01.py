@@ -86,8 +86,7 @@ class Event:
 
     def _create_id(self) -> None:
         """
-        To obtain the event.id, we sha265 the serialized event. Caution: If the
-        event is modified, the id and sig will change.
+        To obtain the event.id, we sha265 the serialized event.
         """
 
         encoded_serialized_event_string = (
@@ -107,20 +106,6 @@ class Event:
             self.sig = None
 
         return hex_hash, hash_object.digest()
-
-    def get_tags(self) -> list:
-        """
-        Returns the event tags.
-        """
-        return self.tags
-
-    def _set_tag(self, tag: list) -> None:
-        """
-        add, update or delete a tag.
-        This method changes the event body. Hence, the Event ID and signature
-        will change.
-        """
-        self._create_id()
 
     def _get_serialised_utf8encoded_string_from_event(self) -> str:
         """
