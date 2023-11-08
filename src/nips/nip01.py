@@ -6,6 +6,7 @@ Source: https://raw.githubusercontent.com/nostr-protocol/nips/master/01.md
 import json
 import hashlib
 import os
+import time
 
 from utils.schnorr import pubkey_gen, schnorr_sign, schnorr_verify
 
@@ -24,40 +25,69 @@ event_signature_on_wire_definition_natlang = {
 
 class Event:
     """
-    Describes a Nostr event.
+    Describes a Nostr event. Once instatiated, the immutable attributes
+    cannot be changed. The event id and signature are generated
+    automatically. To "change" the event, a new event needs to be created.
+    It is important that and event instance can be created from an already
+    existing event (e.g. with created_at from the past).
 
-    Attributes:
-        id (str): The event id.
+    Immutable attr:
         pubkey (str): The event creator's public key.
-        created_at (int): The unix timestamp in seconds.
+        created_at (int): The event creation time.
         kind (int): The event kind.
         tags (list): The event tags.
         content (str): The event content.
-        sig (str): The event signature.
     """
 
     def __init__(
         self,
         pubkey: str,
-        created_at: int,
         kind: int,
+        created_at: int = time.time(),
         tags: list = [""],
         content: str = "",
     ) -> None:
-        self.pubkey: str = pubkey
-        self.created_at: int = created_at
-        self.kind: int = kind
-        self.tags: list = tags
-        self.content: str = content
+        self._pubkey: str = pubkey
+        self._created_at: int = created_at
+        if self._created_at > time.time():
+            raise ValueError("created_at cannot be in the future")
+        self._kind: int = kind
+        self._tags: list = tags
+        self._content: str = content
+
+        self.id_str: str = None
+        self.id_bytes: bytes = None
         id_tuple = self._create_id()
         self.id_str: str = id_tuple[0]
         self.id_bytes: bytes = id_tuple[1]
+
         self.sig: str
         self.sig_bytes: bytes
 
+    @property
+    def pubkey(self):
+        return self._pubkey
+
+    @property
+    def created_at(self):
+        return self._created_at
+
+    @property
+    def kind(self):
+        return self._kind
+
+    @property
+    def tags(self):
+        return self._tags
+
+    @property
+    def content(self):
+        return self._content
+
     def _create_id(self) -> None:
         """
-        To obtain the event.id, we sha265 the serialized event.
+        To obtain the event.id, we sha265 the serialized event. Caution: If the
+        event is modified, the id and sig will change.
         """
 
         encoded_serialized_event_string = (
@@ -65,10 +95,32 @@ class Event:
         )
         hash_object = hashlib.sha256()
         hash_object.update(encoded_serialized_event_string)
-        hex_hash = hash_object.hexdigest()
 
+        old_id = self.id_bytes
+
+        self.id_bytes = hash_object.digest()
+        hex_hash = hash_object.hexdigest()
         self.id_str = hex_hash
+
+        if self.id_bytes != old_id:
+            # invalidate sig
+            self.sig = None
+
         return hex_hash, hash_object.digest()
+
+    def get_tags(self) -> list:
+        """
+        Returns the event tags.
+        """
+        return self.tags
+
+    def _set_tag(self, tag: list) -> None:
+        """
+        add, update or delete a tag.
+        This method changes the event body. Hence, the Event ID and signature
+        will change.
+        """
+        self._create_id()
 
     def _get_serialised_utf8encoded_string_from_event(self) -> str:
         """
