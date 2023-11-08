@@ -7,7 +7,9 @@ import json
 import hashlib
 import os
 
-from src.utils.schnorr import pubkey_gen, schnorr_sign, schnorr_verify
+from utils.schnorr import pubkey_gen, schnorr_sign, schnorr_verify
+
+SCHNORR_CONSTANT = 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
 
 event_signature_on_wire_definition_natlang = {
     "id": "32-bytes lowercase hex-encoded sha265 of the serialized event data",
@@ -47,8 +49,11 @@ class Event:
         self.kind: int = kind
         self.tags: list = tags
         self.content: str = content
-        self.id: str = self._create_id()
+        id_tuple = self._create_id()
+        self.id_str: str = id_tuple[0]
+        self.id_bytes: bytes = id_tuple[1]
         self.sig: str
+        self.sig_bytes: bytes
 
     def _create_id(self) -> None:
         """
@@ -62,8 +67,8 @@ class Event:
         hash_object.update(encoded_serialized_event_string)
         hex_hash = hash_object.hexdigest()
 
-        self.id = hex_hash
-        return hex_hash
+        self.id_str = hex_hash
+        return hex_hash, hash_object.digest()
 
     def _get_serialised_utf8encoded_string_from_event(self) -> str:
         """
@@ -104,9 +109,7 @@ class User:
     """
 
     def __init__(self, private_key: str = None) -> None:
-        self.schnorr_constant = (
-            0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141
-        )
+        self.schnorr_constant = SCHNORR_CONSTANT
         self.private_key: bytes = (
             self._generate_private_key() if private_key is None else private_key
         )
@@ -132,11 +135,14 @@ class User:
         """
         Sign the given event with the user's private key.
         Implements reference function schnorr_sign(msg, seckey, aux_rand).
+        The hex returned is randomised.
         """
-        message = event.id  # sha256 hash of the serialized event data = id
-        sign = schnorr_sign(message, self.private_key, os.urandom(32))
-        event.sig = sign
-        return event
+        message = event.id_bytes  # sha256 hash of the serialized event data = id
+        sig = schnorr_sign(message, self.private_key, os.urandom(32))
+        event.sig_bytes = sig
+        sig_hex = sig.hex()
+        event.sig = sig_hex
+        return sig_hex
 
     def verify_event(self, event: Event) -> None:
         """
@@ -144,8 +150,8 @@ class User:
         Implements reference function schnorr_verify(msg, pubkey, sig).
         Returns True if the signature is valid, False otherwise.
         """
-        message = event.id  # sha256 hash of the serialized event data = id
-        return schnorr_verify(message, self.public_key, event.sig)
+        message = event.id_bytes  # sha256 hash of the serialized event data = id
+        return schnorr_verify(message, self.public_key, event.sig_bytes)
 
     def _generate_private_key(self) -> bytes:
         """
