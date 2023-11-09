@@ -23,13 +23,78 @@ event_signature_on_wire_definition_natlang = {
 }
 
 
+class Tag:
+    """
+    Base class for a Nostr tag. A tag is a list of strings.
+    """
+
+
+class eTag(Tag):
+    """
+    used to refer to an event:
+    [
+        "e",
+        <32-bytes lowercase hex of the id of another event>,
+        <recommended relay URL, optional>
+    ]
+    """
+
+
+class pTag(Tag):
+    """
+    used to refer to another user:
+    [
+        "p",
+        <32-bytes lowercase hex of a pubkey>,
+        <recommended relay URL, optional>
+    ]
+    """
+
+
+class aTag(Tag):
+    """
+    used to refer to a (maybe parameterized) replaceable event.
+
+    for a parameterized replaceable event:
+    [
+        "a",
+        <kind integer>:<32-bytes lowercase hex of a pubkey>:<d tag value>,
+        <recommended relay URL, optional>
+    ]
+
+    for a non-parameterized replaceable event:
+    [
+        "a",
+        <kind integer>:<32-bytes lowercase hex of a pubkey>:,
+        <recommended relay URL, optional>
+    ]
+    """
+
+
+class TagList:
+    """
+    Describes the tag list of a Nostr event. Is instantiated
+    with a list of tags (each tag being a list of strings). Is instantiated
+    when a new event is created. The tag list is immutable as is the reference
+    from the event to the tag list.
+    """
+
+    def __init__(self, tags: list) -> None:
+        self._tags: list = tags
+
+    @property
+    def tags(self):
+        return self._tags
+
+
 class Event:
     """
     Describes a Nostr event. Once instatiated, the immutable attributes
     cannot be changed. The event id and signature are generated
     automatically. To "change" the event, a new event needs to be created.
-    It is important that and event instance can be created from an already
+    It is important that an event instance can be created from an already
     existing event (e.g. with created_at from the past).
+    The event tags are immutably tied to an immutable TagList instance.
 
     Immutable attr:
         pubkey (str): The event creator's public key.
@@ -44,7 +109,7 @@ class Event:
         pubkey: str,
         kind: int,
         created_at: int = time.time(),
-        tags: list = [""],
+        tags: list = [[""]],
         content: str = "",
     ) -> None:
         self._pubkey: str = pubkey
