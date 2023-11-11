@@ -238,6 +238,7 @@ class User:
         Sign the given event with the user's private key.
         Implements reference function schnorr_sign(msg, seckey, aux_rand).
         The hex returned is randomised.
+        The event is supposed to be signed by the creator of the event.
         """
         message = event.id_bytes  # sha256 hash of the serialized event data = id
         sig = schnorr_sign(message, self.private_key, os.urandom(32))
